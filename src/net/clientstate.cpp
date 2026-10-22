@@ -38,6 +38,7 @@
 #include <net/socket_helper.h>
 #include <net/socket_msg.h>
 #include <net/downloadhelper.h>
+#include <net/localnetpolicy.h>
 #include <core/loghelper.h>
 #include <core/avatarmanager.h>
 #include <core/crypthelper.h>
@@ -51,6 +52,8 @@
 #include <QDomNode>
 #include <QDebug>
 #include <QFile>
+#include <QHostAddress>
+#include <cstring>
 #include <boost/bind/bind.hpp>
 #include <boost/foreach.hpp>
 #include <boost/iostreams/filtering_streambuf.hpp>
@@ -94,6 +97,37 @@ using namespace boost::chrono;
 #define MAX_SERVERLIST_DOWNLOAD_SIZE (1024 * 1024)
 #define MAX_SERVERLIST_XML_SIZE (4 * 1024 * 1024)
 #define MAX_SERVERLIST_SERVERS 256
+
+// Offline build: translates an asio address into a QHostAddress.
+// IPv4-mapped IPv6 addresses (::ffff:a.b.c.d - what a dual-stack resolver and
+// an IPv6-mode connect hand to us) are unwrapped first, otherwise the IPv4
+// subnet tests would reject a perfectly fine LAN peer.
+static QHostAddress ToQHostAddress(const boost::asio::ip::address &addr)
+{
+	if (addr.is_v6()) {
+		const boost::asio::ip::address_v6 v6 = addr.to_v6();
+		if (v6.is_v4_mapped())
+			return QHostAddress(static_cast<quint32>(v6.to_v4().to_ulong()));
+		const boost::asio::ip::address_v6::bytes_type bytes = v6.to_bytes();
+		Q_IPV6ADDR raw;
+		std::memcpy(raw, bytes.data(), 16);
+		return QHostAddress(raw);
+	}
+	if (addr.is_v4())
+		return QHostAddress(static_cast<quint32>(addr.to_v4().to_ulong()));
+	return QHostAddress();
+}
+
+// Same for a user-typed string. Returns true when the string is a numeric
+// address that is not local; *isLiteral tells whether it was numeric at all
+// (a host name is judged after resolution instead).
+static bool IsLiteralRemoteAddress(const std::string &hostString, bool *isLiteral)
+{
+	const QHostAddress host(QString::fromStdString(hostString));
+	*isLiteral = !host.isNull();
+	return *isLiteral && !IsLocalOrLanHost(host);
+}
+
 
 
 // The buildId this client reports. The client type is only determined at
@@ -166,13 +200,25 @@ ClientStateInit::Enter(boost::shared_ptr<ClientThread> client)
 	if (context.GetServerPort() < 1024)
 		throw ClientException(__FILE__, __LINE__, ERR_SOCK_INVALID_PORT, 0);
 
+	// Offline build: the public lobby is gone. The server list is the only way
+	// into it, so it is refused here - before a single HTTP request is made
+	// (no serverlist.xml.z fetch, no pokerth.6dns.org, no DNS for it).
+	if (context.GetUseServerList())
+		throw ClientException(__FILE__, __LINE__, ERR_SOCK_ADDR_NOT_ALLOWED, 0);
+
+	// Numeric literals can be judged right away, which gives an immediate
+	// message for a typed public IP instead of a resolver round trip. Host
+	// names pass here and are judged on the resolved endpoint instead
+	// (ClientStateStartConnect::Enter).
+	bool isLiteral = false;
+	if (IsLiteralRemoteAddress(context.GetServerAddr(), &isLiteral) && isLiteral)
+		throw ClientException(__FILE__, __LINE__, ERR_SOCK_ADDR_NOT_ALLOWED, 0);
+
 	client->CreateContextSession();
 	client->GetCallback().SignalNetClientConnect(MSG_SOCK_INIT_DONE);
 
-	if (context.GetUseServerList())
-		client->SetState(ClientStateStartServerListDownload::Instance());
-	else
-		client->SetState(ClientStateStartResolve::Instance());
+	// GetUseServerList() was rejected above, so resolving is the only way on.
+	client->SetState(ClientStateStartResolve::Instance());
 }
 
 void
@@ -575,6 +621,12 @@ ClientStateStartConnect::Enter(boost::shared_ptr<ClientThread> client)
 {
 	m_handshakeRetryCount = 0; // Reset retry counter
 
+	// Offline build: judge the RESOLVED endpoint, so host names are covered
+	// too (pokerbox.local -> 192.168.x.x is fine, pokerth.6dns.org is not).
+	if (m_remoteEndpointIterator == m_remoteEndpoint.end()
+			|| !IsLocalOrLanHost(ToQHostAddress(m_remoteEndpointIterator->endpoint().address())))
+		throw ClientException(__FILE__, __LINE__, ERR_SOCK_ADDR_NOT_ALLOWED, 0);
+
 	// Initialize handshake timer if using SSL
 	if (client->GetContext().GetSessionData()->IsSsl() && !m_handshakeTimer) {
 		m_handshakeTimer.reset(new boost::asio::steady_timer(client->GetStateTimer().get_executor()));
@@ -766,6 +818,10 @@ ClientStateStartConnect::HandleConnect(const boost::system::error_code& ec, boos
 			ClientContext &context = client->GetContext();
 			boost::system::error_code closeEc;
 			boost::asio::ip::tcp::endpoint endpoint = endpoint_iterator->endpoint();
+
+			// Offline build: never fall through to a non-local entry.
+			if (!IsLocalOrLanHost(ToQHostAddress(endpoint.address())))
+				throw ClientException(__FILE__, __LINE__, ERR_SOCK_ADDR_NOT_ALLOWED, 0);
 
 			if (context.GetSessionData()->IsSsl()) {
 				context.GetSessionData()->GetSslStream()->lowest_layer().close(closeEc);

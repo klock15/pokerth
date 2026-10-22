@@ -63,6 +63,9 @@
 #define ERR_SOCK_TRANSFER_FAILED		28
 #define ERR_SOCK_CONNECT_IPV6_FAILED	29
 #define ERR_SOCK_CONNECT_IPV6_TIMEOUT	30
+// Offline build: the target is neither loopback nor a local network address.
+// Client-side only - never sent over the wire.
+#define ERR_SOCK_ADDR_NOT_ALLOWED		31
 // The following errors are game errors.
 #define ERR_NET_VERSION_NOT_SUPPORTED	101
 #define ERR_NET_SERVER_MAINTENANCE		102

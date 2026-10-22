@@ -230,6 +230,8 @@ QString ServerConnectionHandler::networkErrorMessage(int errorID)
 		return tr("Could not set the port for this type of address.");
 	case ERR_SOCK_RESOLVE_FAILED:
 		return tr("The server name could not be resolved.");
+	case ERR_SOCK_ADDR_NOT_ALLOWED:
+		return tr("This build only connects to local network addresses (LAN / this device). Internet servers are disabled.");
 	case ERR_SOCK_BIND_FAILED:
 		return tr("Bind failed - please choose a different port.");
 	case ERR_SOCK_LISTEN_FAILED:
