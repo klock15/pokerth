@@ -23,12 +23,22 @@ Settings {
     // without the free seat (the boxes move up).
     property bool keepEmptySeats: true
 
-    property bool showCommunityContent: true
+    // Offline build: community rankings (BBC/WEC/pokerth.net) are remote-only.
+    property bool showCommunityContent: false
 
     // Forum news (newspaper icon in the top bar with a counter of unread posts,
     // list + post view). Independent of the community content: the forum is the
     // official PokerTH site, not BBC/WEC.
-    property bool showForumNews: true
+    // Offline build: the feed is fetched over HTTP, so it is off by default and
+    // forced off below (Settings persists values across runs).
+    property bool showForumNews: false
+
+    // Offline build: force both cloud surfaces off even if an older run of this
+    // same package stored "true". Re-applied on every start.
+    Component.onCompleted: {
+        showCommunityContent = false
+        showForumNews = false
+    }
 
     // Preselected ranking source ("pokerth" | "bbc" | "wec") for table info and
     // player stats when community content is active. For the selection see

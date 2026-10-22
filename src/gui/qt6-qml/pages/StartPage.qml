@@ -18,7 +18,7 @@ Rectangle {
     // Initial focus on the main action – as when opening a dialog. Qt.callLater,
     // because the focus would otherwise fizzle out during the stack animation.
     // Without a focus reason there is no focus frame; it appears on the first Tab.
-    StackView.onActivated: Qt.callLater(internetGameButton.forceActiveFocus)
+    StackView.onActivated: Qt.callLater(localGameButton.forceActiveFocus)
 
     // Ace's Help (GuideOverlay): the controls a tip outlines.
     function guideTarget(key) {
@@ -49,7 +49,8 @@ Rectangle {
     readonly property real minButtonHeight: 36
     readonly property real boxBudget: height - Config.Theme.margin * 2 - footerReserve
 
-    readonly property int buttonCount: Config.Parameters.showCommunityContent ? 6 : 5
+    // Offline build: 4 buttons (local game, create LAN game, join LAN game, logs)
+    readonly property int buttonCount: 4
 
     // The non-shrinking part of the box: inner margins + row spacings.
     function chromeHeight(rows) {
@@ -168,10 +169,15 @@ Rectangle {
                             Layout.fillWidth: true
                             Layout.preferredWidth: 100
                             Layout.preferredHeight: startPage.buttonHeight
+                            // Offline build: the public lobby is unreachable, so the
+                            // entry point is gone. Kept (not deleted) to avoid touching
+                            // the surrounding layout/guide wiring.
+                            visible: false
                             onClicked: mainStackView.push("ServerConnectionDialog.qml")
                         }
 
                         CustomButton {
+                            id: localGameButton
                             text: qsTr("Lokales Spiel starten")
                             Layout.fillWidth: true
                             Layout.preferredWidth: 100
@@ -200,7 +206,8 @@ Rectangle {
                             Layout.fillWidth: true
                             Layout.preferredWidth: 100
                             Layout.preferredHeight: startPage.buttonHeight
-                            visible: Config.Parameters.showCommunityContent
+                            // Offline build: rankings and community content are remote.
+                            visible: false
                             // Via the same toggle as the globe → the remembered
                             // ranking state is restored.
                             onClicked: mainWindow.toggleTopBarSection(

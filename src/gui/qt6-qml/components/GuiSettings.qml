@@ -129,6 +129,8 @@ Rectangle {
 
                     AppCheckBox {
                         objectName: "allowChatTranslationCheckbox"
+                        // Offline build: translation calls Google/MyMemory.
+                        visible: false
                         text: qsTr("Übersetzung anbieten (Globus-Symbol im Chat und bei Forum-Beiträgen)")
                         checked: (typeof SettingsManager !== "undefined" && SettingsManager)
                                  ? SettingsManager.readConfigInt("AllowChatTranslation") !== 0 : true
@@ -269,6 +271,8 @@ Rectangle {
                     // (official PokerTH forum, not BBC/WEC).
                     AppCheckBox {
                         objectName: "showForumNewsCheckbox"
+                        // Offline build: the feed is fetched over HTTP.
+                        visible: false
                         text: qsTr("Forum-Neuigkeiten anzeigen")
                         checked: Config.Parameters.showForumNews
                         onCheckedChanged: Config.Parameters.showForumNews = checked
@@ -276,6 +280,8 @@ Rectangle {
 
                     AppCheckBox {
                         objectName: "showCommunityContentCheckbox"
+                        // Offline build: rankings are remote-only.
+                        visible: false
                         text: qsTr("Community-Inhalte anzeigen")
                         checked: Config.Parameters.showCommunityContent
                         onCheckedChanged: Config.Parameters.showCommunityContent = checked

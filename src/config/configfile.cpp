@@ -257,7 +257,7 @@ ConfigFile::ConfigFile(char *argv0, bool readonly) : noWriteAccess(readonly)
 	// Active by default; nothing leaves the client until the user taps the
 	// symbol of a concrete line (see ChatTranslator /
 	// docs/third_party_services.md).
-	configList.push_back(ConfigInfo("AllowChatTranslation", CONFIG_TYPE_INT, "1"));
+	configList.push_back(ConfigInfo("AllowChatTranslation", CONFIG_TYPE_INT, "0"));
 	configList.push_back(ConfigInfo("ShowChatTimestamp", CONFIG_TYPE_INT, "1")); // Timestamp [HH:mm:ss] in front of chat lines
 	configList.push_back(ConfigInfo("DarkMode", CONFIG_TYPE_INT, "2")); // 0=light, 1=dark, 2=auto/system
 	configList.push_back(ConfigInfo("AntiPeekMode", CONFIG_TYPE_INT, "0"));
