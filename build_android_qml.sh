@@ -53,7 +53,7 @@ case "$BUILD_TARGET" in
     # stays org.pokerth.qml.ConnectionService (absolute name in the manifest, its
     # source lives under android/src/org/pokerth/qml/), so it keeps resolving
     # regardless of this id.
-    PACKAGE_NAME="${ANDROID_PACKAGE_NAME:-net.pokerth.PokerTH_QML}"
+    PACKAGE_NAME="${ANDROID_PACKAGE_NAME:-net.pokerth.PokerTH_QML.zh}"
     SCREEN_ORIENTATION="fullUser"
     GUI_SUBDIR="src/gui/qt6-qml"
     APP_LABEL="qml"
