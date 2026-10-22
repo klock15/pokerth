@@ -122,8 +122,10 @@ static QHostAddress ToQHostAddress(const boost::asio::ip::address &addr)
 							   | (quint32(b[14]) << 8) | quint32(b[15]);
 			return QHostAddress(v4);
 		}
+		// Q_IPV6ADDR is QIPv6Address (a struct holding quint8 c[16]) in Qt 6,
+		// hence the address-of here.
 		Q_IPV6ADDR raw;
-		std::memcpy(raw, b.data(), 16);
+		std::memcpy(&raw, b.data(), sizeof(raw));
 		return QHostAddress(raw);
 	}
 	return QHostAddress();
