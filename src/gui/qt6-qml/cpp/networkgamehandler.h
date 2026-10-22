@@ -9,6 +9,7 @@
 #include <QObject>
 #include <QVariantList>
 #include <QString>
+#include <QStringList>
 #include <boost/shared_ptr.hpp>
 
 class ConfigFile;

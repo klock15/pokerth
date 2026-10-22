@@ -18,6 +18,7 @@
 #include <QVariantMap>
 #include <QNetworkInterface>
 #include <QHostAddress>
+#include <QAbstractSocket>
 
 #include <list>
 
