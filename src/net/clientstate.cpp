@@ -99,22 +99,33 @@ using namespace boost::chrono;
 #define MAX_SERVERLIST_SERVERS 256
 
 // Offline build: translates an asio address into a QHostAddress.
+// Only to_bytes() is used - Boost's address_v4/address_v6 differ between
+// versions in to_ulong()/to_v4(), to_bytes() is stable.
 // IPv4-mapped IPv6 addresses (::ffff:a.b.c.d - what a dual-stack resolver and
 // an IPv6-mode connect hand to us) are unwrapped first, otherwise the IPv4
 // subnet tests would reject a perfectly fine LAN peer.
 static QHostAddress ToQHostAddress(const boost::asio::ip::address &addr)
 {
+	if (addr.is_v4()) {
+		const boost::asio::ip::address_v4::bytes_type b = addr.to_v4().to_bytes();
+		const quint32 v4 = (quint32(b[0]) << 24) | (quint32(b[1]) << 16)
+						   | (quint32(b[2]) << 8) | quint32(b[3]);
+		return QHostAddress(v4);
+	}
 	if (addr.is_v6()) {
-		const boost::asio::ip::address_v6 v6 = addr.to_v6();
-		if (v6.is_v4_mapped())
-			return QHostAddress(static_cast<quint32>(v6.to_v4().to_ulong()));
-		const boost::asio::ip::address_v6::bytes_type bytes = v6.to_bytes();
+		const boost::asio::ip::address_v6::bytes_type b = addr.to_v6().to_bytes();
+		static const unsigned char kV4MappedPrefix[12] = {
+			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff
+		};
+		if (std::memcmp(b.data(), kV4MappedPrefix, 12) == 0) {
+			const quint32 v4 = (quint32(b[12]) << 24) | (quint32(b[13]) << 16)
+							   | (quint32(b[14]) << 8) | quint32(b[15]);
+			return QHostAddress(v4);
+		}
 		Q_IPV6ADDR raw;
-		std::memcpy(raw, bytes.data(), 16);
+		std::memcpy(raw, b.data(), 16);
 		return QHostAddress(raw);
 	}
-	if (addr.is_v4())
-		return QHostAddress(static_cast<quint32>(addr.to_v4().to_ulong()));
 	return QHostAddress();
 }
 
