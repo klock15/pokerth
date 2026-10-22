@@ -16,6 +16,8 @@
 #include <QTextStream>
 #include <QDomDocument>
 #include <QVariantMap>
+#include <QNetworkInterface>
+#include <QHostAddress>
 
 #include <list>
 
@@ -155,6 +157,27 @@ int NetworkGameHandler::defaultPort() const
 		return 7234;
 	const int p = m_config->readConfigInt("ServerPort");
 	return p > 0 ? p : 7234;
+}
+
+QStringList NetworkGameHandler::localIpv4Addresses() const
+{
+	QStringList result;
+	const QList<QHostAddress> all = QNetworkInterface::allAddresses();
+	for (const QHostAddress &addr : all) {
+		if (addr.protocol() != QAbstractSocket::IPv4Protocol)
+			continue;
+		if (addr.isNull() || addr.isLoopback())
+			continue;
+		const bool lan =
+			addr.isInSubnet(QHostAddress(QStringLiteral("10.0.0.0")), 8)
+			|| addr.isInSubnet(QHostAddress(QStringLiteral("172.16.0.0")), 12)
+			|| addr.isInSubnet(QHostAddress(QStringLiteral("192.168.0.0")), 16)
+			|| addr.isInSubnet(QHostAddress(QStringLiteral("169.254.0.0")), 16);
+		if (lan && !result.contains(addr.toString()))
+			result << addr.toString();
+	}
+	result.sort();
+	return result;
 }
 
 // ─── Server profiles (<UserDataDir>/serverprofiles.xml) ──────────────────────

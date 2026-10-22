@@ -52,6 +52,11 @@ public:
 	// Default port (config "ServerPort").
 	Q_INVOKABLE int defaultPort() const;
 
+	// Offline build: IPv4 addresses of this device inside LAN ranges. Shown on
+	// the "create network game" page so the other players know what to type.
+	// Loopback is filtered out - it is useless for them.
+	Q_INVOKABLE QStringList localIpv4Addresses() const;
+
 	// Server profiles (stored in <UserDataDir>/serverprofiles.xml).
 	QVariantList serverProfiles() const
 	{

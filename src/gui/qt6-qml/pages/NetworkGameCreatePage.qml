@@ -21,6 +21,12 @@ Rectangle {
     property bool connecting: false
     property string statusMessage: ""
 
+    // Offline build: this device's LAN addresses, shown so the other players
+    // know what to enter in "join network game".
+    property var localIps: []
+    readonly property int listenPort: (typeof NetworkGame !== "undefined" && NetworkGame)
+                                      ? NetworkGame.defaultPort() : 7234
+
     // Default button of the page: Enter creates the game, no matter where the focus is.
     // A focused button consumes Return itself and keeps precedence.
     // While the server starts, the waiting view lies on top – then not.
@@ -77,6 +83,8 @@ Rectangle {
         doubleBlindsSwitch.checked = cfgInt("NetAlwaysDoubleBlinds", 1) === 1
         timeoutSpinBox.value = cfgInt("NetTimeOutPlayerAction", 20)
         delaySpinBox.value   = cfgInt("NetDelayBetweenHands", 7)
+        if (typeof NetworkGame !== "undefined" && NetworkGame)
+            localIps = NetworkGame.localIpv4Addresses()
     }
 
     // ── Backend signals: navigation into the lobby/waiting room flow ──────────
@@ -172,6 +180,27 @@ Rectangle {
                 Layout.topMargin: 12
                 Layout.bottomMargin: 8
                 spacing: 12
+
+                // ── Offline build: how the others join ───────────────────────
+                AppLabel {
+                    Layout.fillWidth: true
+                    wrapMode: Text.WordWrap
+                    visible: networkGameCreatePage.localIps.length > 0
+                    text: qsTr("Andere Spieler verbinden sich mit: %1 (Port %2)")
+                              .arg(networkGameCreatePage.localIps.join(" / "))
+                              .arg(networkGameCreatePage.listenPort)
+                    color: Config.StaticData.palette.secondary.col200
+                    font.pixelSize: 12
+                    font.bold: true
+                }
+                AppLabel {
+                    Layout.fillWidth: true
+                    wrapMode: Text.WordWrap
+                    visible: networkGameCreatePage.localIps.length === 0
+                    text: qsTr("Keine LAN-Adresse gefunden. Bitte zuerst mit dem WLAN verbinden.")
+                    color: Config.StaticData.palette.secondary.col400
+                    font.pixelSize: 12
+                }
 
                 // ── Spiel-Einstellungen ──────────────────────────────────────
                 AppLabel {
